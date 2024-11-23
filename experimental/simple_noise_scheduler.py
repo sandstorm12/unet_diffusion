@@ -5,15 +5,30 @@ from torchvision.transforms import ToTensor
 
 
 class SimpleNoiseScheduler(object):
-    def __init__(self, num_steps=1000, beta_start=1e-4, beta_end=0.02, device='cpu'):
+    def __init__(self, num_steps=1000, alpha_start=1e-4, alpha_end=0.02, device='cpu'):
         self._num_steps = num_steps
-        self._beta_start = beta_start
-        self._beta_end = beta_end
+        self._alpha_start = alpha_start
+        self._alpha_end = alpha_end
 
-        self._betas = torch.linspace(self._beta_start, self._beta_end, self._num_steps, device=device)
-        self._alphas = 1.0 - self._betas
-        self._alpha_start = self._alphas[0]
-        self._alpha_bars = torch.cumprod(self._alphas, dim=0)
+        self._alpha_bars = self._compute_alpha_bar(self._alpha_start, self._alpha_end, self._num_steps, device=device)
+        self._betas = self._compute_beta(self._alpha_bars)
+        self._alphas = 1 - self._betas
+
+    def _compute_alpha_bar(self, start, end, T, device):
+        """Compute the cumulative alpha_bar using the cosine schedule."""
+        timesteps = torch.arange(0, T + 1, dtype=torch.float32, device=device)
+        alpha_bar = torch.cos((timesteps / T) * (torch.pi / 2)) ** 2
+        # alpha_bar = start + (end - start) * alpha_bar  # Scale between start and end
+        
+        return alpha_bar
+
+    def _compute_beta(self, alpha_bar):
+        """Compute beta values (noise variance) from alpha_bar."""
+        alpha_bar = alpha_bar
+        beta = 1 - (alpha_bar[1:] / alpha_bar[:-1])  # Derive beta from alpha_bar
+        beta = torch.clip(beta, 0, 0.999)  # Ensure beta values are valid
+        
+        return beta
 
     def get_alphas(self):
         return self._alphas
@@ -21,7 +36,7 @@ class SimpleNoiseScheduler(object):
     def get_alpha_bars(self):
         return self._alpha_bars
 
-    def _get_betas(self):
+    def get_betas(self):
         return self._betas
 
     def sample_noisy_image(self, images, ts):

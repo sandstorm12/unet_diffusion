@@ -32,20 +32,20 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset = _load_dataset()
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=4)
 
     scheduler = SimpleNoiseScheduler(num_steps=PARAM_NUM_STEPS, device=device)
 
     criterion = torch.nn.MSELoss()
 
     model = UNet(timesteps=PARAM_NUM_STEPS, classes=PARAM_NUM_CLASSES).to(device)
-    model.load_state_dict(torch.load("model.pth"))
+    # model.load_state_dict(torch.load("model.pth"))
 
-    optim = torch.optim.Adam(model.parameters(), lr=0.00001)
+    optim = torch.optim.Adam(model.parameters(), lr=0.0001)
     # optim_scheduler = StepLR(optim, step_size=10, gamma=0.1)
 
     min_loss = float('inf')
-    min_loss = .0229
+    # min_loss = .0297
 
     pbar = tqdm(range(PARAM_EPOCHS))
     for epoch in pbar:
