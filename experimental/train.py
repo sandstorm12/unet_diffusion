@@ -15,9 +15,9 @@ from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 
 
-PARAM_NUM_STEPS = 100
+PARAM_NUM_STEPS = 500
 PARAM_NUM_CLASSES = 10
-PARAM_EPOCHS = 500
+PARAM_EPOCHS = 200
 
 
 def _load_dataset():
@@ -29,20 +29,23 @@ def _load_dataset():
 
 
 if __name__ == "__main__":
-    dataset = _load_dataset()
-    dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=4)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    scheduler = SimpleNoiseScheduler(num_steps=PARAM_NUM_STEPS)
+    dataset = _load_dataset()
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
+
+    scheduler = SimpleNoiseScheduler(num_steps=PARAM_NUM_STEPS, device=device)
 
     criterion = torch.nn.MSELoss()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     model = UNet(timesteps=PARAM_NUM_STEPS, classes=PARAM_NUM_CLASSES).to(device)
-    optim = torch.optim.Adam(model.parameters(), lr=0.0001)
-    optim_scheduler = StepLR(optim, step_size=10, gamma=0.1)
+    model.load_state_dict(torch.load("model.pth"))
+
+    optim = torch.optim.Adam(model.parameters(), lr=0.00001)
+    # optim_scheduler = StepLR(optim, step_size=10, gamma=0.1)
 
     min_loss = float('inf')
+    min_loss = .0229
 
     pbar = tqdm(range(PARAM_EPOCHS))
     for epoch in pbar:
@@ -56,11 +59,7 @@ if __name__ == "__main__":
 
             outputs = model(noisy_images, ts, labels)
 
-            # print(torch.min(outputs), torch.mean(outputs), torch.max(outputs))
-            # print(torch.min(noises), torch.mean(noises), torch.max(noises))
-            # print()
-
-            loss = criterion(outputs, images)
+            loss = criterion(outputs, noises)
 
             optim.zero_grad()
             loss.backward()

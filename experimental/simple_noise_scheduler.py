@@ -15,7 +15,14 @@ class SimpleNoiseScheduler(object):
         self._alpha_start = self._alphas[0]
         self._alpha_bars = torch.cumprod(self._alphas, dim=0)
 
-        print(self._alpha_bars)
+    def get_alphas(self):
+        return self._alphas
+
+    def get_alpha_bars(self):
+        return self._alpha_bars
+
+    def _get_betas(self):
+        return self._betas
 
     def sample_noisy_image(self, images, ts):
         batch_size = images.shape[0]
@@ -39,7 +46,7 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    PARAM_NUM_STEPS = 100
+    PARAM_NUM_STEPS = 500
 
     def _load_dataset():
         return MNIST(root='/tmp', download=True, transform=ToTensor())
@@ -48,6 +55,8 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
     scheduler = SimpleNoiseScheduler(num_steps=PARAM_NUM_STEPS, device=device)
+    alpha_bars = scheduler.get_alpha_bars()
+    print(alpha_bars)
 
     for images, labels in dataloader:
         for i in range(PARAM_NUM_STEPS):
