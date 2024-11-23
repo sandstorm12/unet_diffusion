@@ -19,12 +19,17 @@ class UNet(nn.Module):
         self._encoder_21 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1,)
         self._encoder_30 = nn.Conv2d(128 + 32, 128, kernel_size=3, stride=1, padding=1,)
         self._encoder_31 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1,)
+        self._encoder_40 = nn.Conv2d(128 + 32, 256, kernel_size=3, stride=1, padding=1,)
+        self._encoder_41 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1,)
 
         self._pooling_0 = nn.MaxPool2d(kernel_size=2, stride=2)
         self._pooling_1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self._pooling_2 = nn.MaxPool2d(kernel_size=2, stride=2)
         self._pooling_3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self._pooling_4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
+        self._decoder_000 = nn.ConvTranspose2d(256 + 128 + 32, 256, kernel_size=3, stride=1, padding=1,)
+        self._decoder_001 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1,)
         self._decoder_00 = nn.ConvTranspose2d(128 + 128 + 32, 128, kernel_size=3, stride=1, padding=1,)
         self._decoder_01 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=1, padding=1,)
         self._decoder_10 = nn.ConvTranspose2d(128 + 64 + 32, 64, kernel_size=3, stride=1, padding=1,)
@@ -34,6 +39,7 @@ class UNet(nn.Module):
         self._decoder_30 = nn.ConvTranspose2d(64 + 1 + 32, 32, kernel_size=3, stride=1, padding=1,)
         self._decoder_31 = nn.ConvTranspose2d(32, 1, kernel_size=3, stride=1, padding=1,)
 
+        self._upsampling_00 = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
         self._upsampling_0 = nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2)
         self._upsampling_1 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1)
         self._upsampling_2 = nn.ConvTranspose2d(64, 64, kernel_size=2, stride=2)
@@ -80,6 +86,23 @@ class UNet(nn.Module):
         e3 = self._pooling_3(e3)
         # print("3e", e3.shape)
 
+        emb_time_class_4 = emb_time_class.unsqueeze(-1).unsqueeze(-1).repeat(
+            1, 1, e3.shape[2], e3.shape[3])
+        e4 = torch.cat([e3, emb_time_class_4], dim=1)
+        e4 = F.relu_(self._encoder_40(e4))
+        e4 = F.relu_(self._encoder_41(e4))
+        e4 = self._pooling_4(e4)
+        # print("4e", e4.shape)
+
+        d00 = self._upsampling_00(e4)
+        emb_time_class_u00 = emb_time_class.unsqueeze(-1).unsqueeze(-1).repeat(
+            1, 1, d00.shape[2], d00.shape[3])
+        d00 = torch.cat([d00, emb_time_class_u00], dim=1)
+        d00 = torch.cat([d00, e3], dim=1)
+        d00 = F.relu_(self._decoder_000(d00))
+        d00 = F.relu_(self._decoder_001(d00))
+        # print("0d", d0.shape)
+        
         d0 = self._upsampling_0(e3)
         emb_time_class_u0 = emb_time_class.unsqueeze(-1).unsqueeze(-1).repeat(
             1, 1, d0.shape[2], d0.shape[3])
