@@ -26,8 +26,8 @@ def _load_dataset():
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    label = torch.LongTensor([7]).to(device)
-    timestep = 500
+    label = torch.LongTensor([8]).to(device)
+    timestep = 50
 
     model = UNet(timesteps=PARAM_NUM_STEPS, classes=PARAM_NUM_CLASSES).to(device)
     model.load_state_dict(torch.load("model.pth"))
@@ -36,29 +36,35 @@ if __name__ == "__main__":
     scheduler = SimpleNoiseScheduler(num_steps=PARAM_NUM_STEPS, device=device)
 
     dataset = _load_dataset()
-    image, label_gt = dataset.__getitem__(4)
+    image, label_gt = dataset.__getitem__(7)
     image = image.unsqueeze(0).to(device)
-    # label = torch.LongTensor([label_gt]).to(device)
+    label = torch.LongTensor([label_gt]).to(device)
     step = torch.LongTensor([timestep - 1]).to(device)
     print(image.shape, label.shape)
 
     alphas = scheduler.get_alphas()
     alpha_bars = scheduler.get_alpha_bars()
-    betas = scheduler._get_betas()
+    betas = scheduler.get_betas()
     image_noisy, noises = scheduler.sample_noisy_image(image, step)
 
     with torch.no_grad():
-        for step in tqdm(range(timestep - 1, -1, -1)):
+        for step in tqdm(range(timestep - 1, 1, -1)):
             step = torch.LongTensor([step]).to(device)
             noises = model(image_noisy, step, label)
 
-            image_prv = (1 / torch.sqrt(alphas[step])) \
-                * (image_noisy - (betas[step]) / torch.sqrt(1 - alpha_bars[step]) * noises)
-                # + torch.sqrt(betas[step]) * torch.randn_like(image_noisy, device=device)
+            if step > 20:
+                image_prv = (1 / torch.sqrt(alphas[step])) \
+                    * (image_noisy - (betas[step]) / torch.sqrt(1 - alpha_bars[step]) * noises) \
+                    + torch.sqrt(betas[step]) * torch.randn_like(image_noisy, device=device)
+            elif step <= 10:
+                image_prv = (1 / torch.sqrt(alphas[step])) \
+                    * (image_noisy - (betas[step]) / torch.sqrt(1 - alpha_bars[step]) * noises)
 
-            image_np = image_noisy.detach().cpu().numpy()[0, 0] * 255
+            image_np = image_prv.detach().cpu().numpy()[0, 0] * 255
             noises_np = noises.detach().cpu().numpy()[0, 0] * 255
 
+            # cv2.imshow("Image 0", image_np)
+            # cv2.imshow("Noises 0", noises_np)
             cv2.imshow("Image 0", cv2.resize(image_np, (512, 512), interpolation=cv2.INTER_CUBIC))
             cv2.imshow("Noises 0", cv2.resize(noises_np, (512, 512), interpolation=cv2.INTER_CUBIC))
             if cv2.waitKey(0) == ord('q'):
