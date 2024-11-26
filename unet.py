@@ -14,16 +14,26 @@ class UNet(nn.Module):
         self._embeddings_class = nn.Embedding(classes, SIZE_EMB)
         self._linear_class = nn.Linear(SIZE_EMB, SIZE_EMB)
 
-        self._encoder_00 = nn.Conv2d(1 + SIZE_EMB, 64, kernel_size=3, stride=1, padding=1,)
-        self._encoder_01 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1,)
-        self._encoder_10 = nn.Conv2d(64 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
-        self._encoder_11 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1,)
-        self._encoder_20 = nn.Conv2d(128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=2,)
-        self._encoder_21 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1,)
-        self._encoder_30 = nn.Conv2d(128 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
-        self._encoder_31 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1,)
-        self._encoder_40 = nn.Conv2d(256 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
-        self._encoder_41 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1,)
+        self._encoder_00 = nn.Conv2d(
+            1 + SIZE_EMB, 64, kernel_size=3, stride=1, padding=1,)
+        self._encoder_01 = nn.Conv2d(
+            64, 64, kernel_size=3, stride=1, padding=1,)
+        self._encoder_10 = nn.Conv2d(
+            64 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
+        self._encoder_11 = nn.Conv2d(
+            128, 128, kernel_size=3, stride=1, padding=1,)
+        self._encoder_20 = nn.Conv2d(
+            128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=2,)
+        self._encoder_21 = nn.Conv2d(
+            128, 128, kernel_size=3, stride=1, padding=1,)
+        self._encoder_30 = nn.Conv2d(
+            128 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
+        self._encoder_31 = nn.Conv2d(
+            256, 256, kernel_size=3, stride=1, padding=1,)
+        self._encoder_40 = nn.Conv2d(
+            256 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
+        self._encoder_41 = nn.Conv2d(
+            256, 256, kernel_size=3, stride=1, padding=1,)
 
         self._pooling_0 = nn.MaxPool2d(kernel_size=2, stride=2)
         self._pooling_1 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -31,23 +41,39 @@ class UNet(nn.Module):
         self._pooling_3 = nn.MaxPool2d(kernel_size=2, stride=2)
         self._pooling_4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self._decoder_000 = nn.ConvTranspose2d(256 + 256 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
-        self._decoder_001 = nn.ConvTranspose2d(256, 256, kernel_size=3, stride=1, padding=1,)
-        self._decoder_00 = nn.ConvTranspose2d(256 + 128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_01 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_10 = nn.ConvTranspose2d(128 + 128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_11 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_20 = nn.ConvTranspose2d(128 + 64 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_21 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=1, padding=1,)
-        self._decoder_30 = nn.ConvTranspose2d(128 + 1 + SIZE_EMB, 64, kernel_size=3, stride=1, padding=1,)
-        self._decoder_31 = nn.ConvTranspose2d(64, 64, kernel_size=3, stride=1, padding=1,)
+        self._decoder_000 = nn.ConvTranspose2d(
+            256 + 256 + SIZE_EMB, 256, kernel_size=3, stride=1, padding=1,)
+        self._decoder_001 = nn.ConvTranspose2d(
+            256, 256, kernel_size=3, stride=1, padding=1,)
+        self._decoder_00 = nn.ConvTranspose2d(
+            256 + 128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_01 = nn.ConvTranspose2d(
+            128, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_10 = nn.ConvTranspose2d(
+            128 + 128 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_11 = nn.ConvTranspose2d(
+            128, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_20 = nn.ConvTranspose2d(
+            128 + 64 + SIZE_EMB, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_21 = nn.ConvTranspose2d(
+            128, 128, kernel_size=3, stride=1, padding=1,)
+        self._decoder_30 = nn.ConvTranspose2d(
+            128 + 1 + SIZE_EMB, 64, kernel_size=3, stride=1, padding=1,)
+        self._decoder_31 = nn.ConvTranspose2d(
+            64, 64, kernel_size=3, stride=1, padding=1,)
 
-        self._upsampling_00 = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
-        self._upsampling_0 = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
-        self._upsampling_1 = nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1)
-        self._upsampling_2 = nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2)
-        self._upsampling_3 = nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2)
-        self._upsampling_4 = nn.ConvTranspose2d(1, 1, kernel_size=1, stride=1)
+        self._upsampling_00 = nn.ConvTranspose2d(
+            256, 256, kernel_size=2, stride=2)
+        self._upsampling_0 = nn.ConvTranspose2d(
+            256, 256, kernel_size=2, stride=2)
+        self._upsampling_1 = nn.ConvTranspose2d(
+            128, 128, kernel_size=3, stride=2, padding=1)
+        self._upsampling_2 = nn.ConvTranspose2d(
+            128, 128, kernel_size=2, stride=2)
+        self._upsampling_3 = nn.ConvTranspose2d(
+            128, 128, kernel_size=2, stride=2)
+        self._upsampling_4 = nn.ConvTranspose2d(
+            1, 1, kernel_size=1, stride=1)
 
         self._conv_out_0 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
         self._conv_out_1 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
