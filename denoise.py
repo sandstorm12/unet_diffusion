@@ -13,9 +13,11 @@ from torchvision.datasets import MNIST
 
 PARAM_NUM_STEPS = 500
 PARAM_NUM_CLASSES = 10
-PARAM_NOISE_STEPS = 50
+PARAM_NOISE_STEPS = 100
 PARAM_NP_MIN = 20
 PARAM_UPSCALE = True
+PARAM_VISUALIZE = False
+PARAM_LABEL = 9
 
 
 def _load_model(device, load_save=True):
@@ -38,12 +40,15 @@ def _load_dataset():
     return MNIST(root='/tmp', download=True, transform=transform)
 
 
-def _load_random_image(dataset, device):
-    idx_rand = np.random.randint(0, len(dataset))
+def _load_random_image(dataset, device, label=None):
+    while True:
+        idx_rand = np.random.randint(0, len(dataset))
+        image, label_gt = dataset.__getitem__(idx_rand)
+        image = image.unsqueeze(0).to(device)
 
-    image, label_gt = dataset.__getitem__(idx_rand)
-    image = image.unsqueeze(0).to(device)
-    label = torch.LongTensor([label_gt]).to(device)
+        if label is not None and label_gt == label:
+            label = torch.LongTensor([label_gt]).to(device)
+            break
 
     return image, label
 
@@ -67,8 +72,32 @@ if __name__ == "__main__":
 
     dataset = _load_dataset()
 
-    image, label = _load_random_image(dataset, device)
+    image, label = _load_random_image(dataset, device, label=PARAM_LABEL)
     image_noisy, noise = _add_noise(image, scheduler, device)
+    print(label)
+
+    image_np = image.detach().cpu().numpy()[0, 0]
+    image_noisy_np = image_noisy.detach().cpu().numpy()[0, 0]
+
+    image_np = (image_np - image_np.min()) \
+        / (image_np.max() - image_np.min()) * 255
+    image_noisy_np = (image_noisy_np - image_noisy_np.min()) \
+        / (image_noisy_np.max() - image_noisy_np.min()) * 255
+    
+    image_np = image_np.astype(np.uint8)
+    image_noisy_np = image_noisy_np.astype(np.uint8)
+
+    if PARAM_UPSCALE:
+        image_np = cv2.resize(image_np,
+                                (512, 512),
+                                interpolation=cv2.INTER_CUBIC)
+        image_noisy_np = cv2.resize(image_noisy_np,
+                                (512, 512),
+                                interpolation=cv2.INTER_CUBIC)
+    cv2.imwrite("./artifacts/image_{}_{}.jpg".format(
+        label.item(), PARAM_NOISE_STEPS), image_np)
+    cv2.imwrite("./artifacts/image_noisy_{}_{}.jpg".format(
+        label.item(), PARAM_NOISE_STEPS), image_noisy_np)
 
     with torch.no_grad():
         for step in tqdm(range(PARAM_NOISE_STEPS - 1, 0, -1)):
@@ -86,27 +115,32 @@ if __name__ == "__main__":
                     * (image_noisy - (betas[step]) \
                        / torch.sqrt(1 - alpha_bars[step]) * noises)
 
-            print(image_prv.shape, image_prv.min(), image_prv.max())
-
             image_np = image_prv.detach().cpu().numpy()[0, 0]
-            noises_np = noises.detach().cpu().numpy()[0, 0]
+            noise_np = noises.detach().cpu().numpy()[0, 0]
 
             image_np = (image_np - image_np.min()) \
-                / (image_np.max() - image_np.min())
-            noises_np = (noises_np - noises_np.min()) \
-                / (noises_np.max() - noises_np.min())
+                / (image_np.max() - image_np.min()) * 255
+            noise_np = (noise_np - noise_np.min()) \
+                / (noise_np.max() - noise_np.min()) * 255
+            
+            image_np = image_np.astype(np.uint8)
+            noise_np = noise_np.astype(np.uint8)
 
             if PARAM_UPSCALE:
                 image_np = cv2.resize(image_np,
                                       (512, 512),
                                       interpolation=cv2.INTER_CUBIC)
-                noises_np = cv2.resize(noises_np,
+                noise_np = cv2.resize(noise_np,
                                        (512, 512),
                                        interpolation=cv2.INTER_CUBIC)
             
-            cv2.imshow("Image", image_np)
-            cv2.imshow("Noises", noises_np)
-            if cv2.waitKey(0) == ord('q'):
-                break
+            if PARAM_VISUALIZE:
+                cv2.imshow("Image", image_np)
+                cv2.imshow("Noises", noise_np)
+                if cv2.waitKey(0) == ord('q'):
+                    break
 
             image_noisy = image_prv
+
+    cv2.imwrite("./artifacts/image_final_{}_{}.jpg".format(
+        label.item(), PARAM_NOISE_STEPS), image_np)
