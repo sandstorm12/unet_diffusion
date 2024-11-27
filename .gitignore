@@ -1,5 +1,7 @@
 # Model files
 *.pth
+*.mp4
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
